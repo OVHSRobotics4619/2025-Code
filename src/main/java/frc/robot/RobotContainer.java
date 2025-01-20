@@ -42,7 +42,7 @@ public class RobotContainer {
   private XboxController driverXbox = new XboxController(0);
 
   private final SwerveSubsystem driveSubsystem = new SwerveSubsystem(
-      new File(Filesystem.getDeployDirectory(), "swerve/neo"));
+     new File(Filesystem.getDeployDirectory(), "swerve/neo"));
 
   // CommandJoystick rotationController = new CommandJoystick(1);
   // Replace with CommandPS4Controller or CommandJoystick if needed
@@ -53,7 +53,7 @@ public class RobotContainer {
    */
   public RobotContainer() {
 
-    AbsoluteDrive closedAbsoluteDrive = new AbsoluteDrive(driveSubsystem,
+   AbsoluteDrive closedAbsoluteDrive = new AbsoluteDrive(driveSubsystem,
         // Applies deadbands and inverts controls because joysticks
         // are back-right positive while robot
         // controls are front-left positive

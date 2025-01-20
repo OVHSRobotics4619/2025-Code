@@ -12,6 +12,7 @@ import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.pathplanner.lib.util.PathPlannerLogging;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -29,10 +30,6 @@ import swervelib.SwerveController;
 import swervelib.SwerveDrive;
 import swervelib.parser.SwerveDriveConfiguration;
 import swervelib.parser.SwerveParser;
-import com.revrobotics.spark.SparkMax;
-import com.revrobotics.spark.config.SparkMaxConfig;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-
 
 /**
  * Basic simulation of a swerve subsystem with the methods needed by PathPlanner
@@ -306,6 +303,16 @@ public class SwerveSubsystem extends SubsystemBase {
           currentPosition.distanceMeters + (currentState.speedMetersPerSecond * 0.02), currentState.angle);
     }
   }
+
+  Encoder encoder = new Encoder(0, 1); // Create an Encoder object, specifying the digital input channels
+
+  // ...
+  
+  // Get the encoder position in terms of pulses
+  int position = encoder.get(); 
+  
+  // Get the encoder rate in terms of pulses per second
+  double rate = encoder.getRate(); 
 
   /**
    * Basic simulation of a gyro, will just hold its current state and not use any
