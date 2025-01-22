@@ -69,7 +69,11 @@ public class AbsoluteDrive extends Command
   @Override
   public void execute()
   {
-    
+    SmartDashboard.putNumber("Test Value", 42);
+    // System.out.println(swerve.position1);
+    // System.out.println(swerve.position2);
+    // System.out.println(swerve.position3);
+    // System.out.println(swerve.position4);
 
     // Get the desired chassis speeds based on a 2 joystick module.
     ChassisSpeeds desiredSpeeds = swerve.getTargetSpeeds(vX.getAsDouble(), vY.getAsDouble(),

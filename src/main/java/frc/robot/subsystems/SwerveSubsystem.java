@@ -12,7 +12,6 @@ import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.pathplanner.lib.util.PathPlannerLogging;
 
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -43,57 +42,59 @@ public class SwerveSubsystem extends SubsystemBase {
 
   private Field2d field = new Field2d();
 
-  private final SwerveDrive swerveDrive;
-
-  public double maximumSpeed = Units.feetToMeters(14.5);
+  private SwerveDrive swerveDrive;
   
-  public SwerveSubsystem(File directory) {
-    gyro = new SimGyro();
-    modules = new SimSwerveModule[] {
-        new SimSwerveModule(),
-        new SimSwerveModule(),
-        new SimSwerveModule(),
-        new SimSwerveModule()
-    };
-    kinematics = new SwerveDriveKinematics(
-        Constants.Swerve.flModuleOffset,
-        Constants.Swerve.frModuleOffset,
-        Constants.Swerve.blModuleOffset,
-        Constants.Swerve.brModuleOffset);
-    odometry = new SwerveDriveOdometry(kinematics, gyro.getRotation2d(), getPositions());
-
-    try {
-      RobotConfig config = RobotConfig.fromGUISettings();
-
-      // Configure AutoBuilder
-      AutoBuilder.configure(
-          this::getPose,
-          this::resetPose,
-          this::getSpeeds,
-          this::driveRobotRelative,
-          new PPHolonomicDriveController(
-              Constants.Swerve.translationConstants,
-              Constants.Swerve.rotationConstants),
-          config,
-          () -> {
-            // Boolean supplier that controls when the path will be mirrored for the red
-            // alliance
-            // This will flip the path being followed to the red side of the field.
-            // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
-
-            var alliance = DriverStation.getAlliance();
-            if (alliance.isPresent()) {
-              return alliance.get() == DriverStation.Alliance.Red;
-            }
-            return false;
-          },
-          this);
-    } catch (Exception e) {
-      DriverStation.reportError("Failed to load PathPlanner config and configure AutoBuilder", e.getStackTrace());
-    }
-
-    try {
-      swerveDrive = new SwerveParser(directory).createSwerveDrive(maximumSpeed);
+    public double maximumSpeed = Units.feetToMeters(14.5);
+    
+    public SwerveSubsystem(File directory) {
+      
+      
+      gyro = new SimGyro();
+      modules = new SimSwerveModule[] {
+          new SimSwerveModule(),
+          new SimSwerveModule(),
+          new SimSwerveModule(),
+          new SimSwerveModule()
+      };
+      kinematics = new SwerveDriveKinematics(
+          Constants.Swerve.flModuleOffset,
+          Constants.Swerve.frModuleOffset,
+          Constants.Swerve.blModuleOffset,
+          Constants.Swerve.brModuleOffset);
+      odometry = new SwerveDriveOdometry(kinematics, gyro.getRotation2d(), getPositions());
+  
+      try {
+        RobotConfig config = RobotConfig.fromGUISettings();
+  
+        // Configure AutoBuilder
+        AutoBuilder.configure(
+            this::getPose,
+            this::resetPose,
+            this::getSpeeds,
+            this::driveRobotRelative,
+            new PPHolonomicDriveController(
+                Constants.Swerve.translationConstants,
+                Constants.Swerve.rotationConstants),
+            config,
+            () -> {
+              // Boolean supplier that controls when the path will be mirrored for the red
+              // alliance
+              // This will flip the path being followed to the red side of the field.
+              // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
+  
+              var alliance = DriverStation.getAlliance();
+              if (alliance.isPresent()) {
+                return alliance.get() == DriverStation.Alliance.Red;
+              }
+              return false;
+            },
+            this);
+      } catch (Exception e) {
+        DriverStation.reportError("Failed to load PathPlanner config and configure AutoBuilder", e.getStackTrace());
+      }
+  
+      try {
+        swerveDrive = new SwerveParser(directory).createSwerveDrive(maximumSpeed);
       // Alternative method if you don't want to supply the conversion factor via JSON
       // files.
       // swerveDrive = new SwerveParser(directory).createSwerveDrive(maximumSpeed,
@@ -303,16 +304,6 @@ public class SwerveSubsystem extends SubsystemBase {
           currentPosition.distanceMeters + (currentState.speedMetersPerSecond * 0.02), currentState.angle);
     }
   }
-
-  Encoder encoder = new Encoder(0, 1); // Create an Encoder object, specifying the digital input channels
-
-  // ...
-  
-  // Get the encoder position in terms of pulses
-  int position = encoder.get(); 
-  
-  // Get the encoder rate in terms of pulses per second
-  double rate = encoder.getRate(); 
 
   /**
    * Basic simulation of a gyro, will just hold its current state and not use any
