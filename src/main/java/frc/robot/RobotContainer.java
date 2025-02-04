@@ -41,33 +41,6 @@ public class RobotContainer
   /**
    * Converts driver input into a field-relative ChassisSpeeds that is controlled by angular velocity.
    */
-  SwerveInputStream driveAngularVelocity = SwerveInputStream.of(drivebase.getSwerveDrive(),
-                                                                () -> driverXbox.getLeftY(),
-                                                                () -> driverXbox.getLeftX())
-                                                            .withControllerRotationAxis(driverXbox::getRightX)
-                                                            .deadband(OperatorConstants.DEADBAND)
-                                                            .scaleTranslation(0.5)
-                                                            .allianceRelativeControl(true);
-
-
-  SwerveInputStream driveAngularVelocitySim = SwerveInputStream.of(drivebase.getSwerveDrive(),
-                                                                   () -> -driverXbox.getLeftY(),
-                                                                   () -> -driverXbox.getLeftX())
-                                                               .withControllerRotationAxis(() -> driverXbox.getRawAxis(2))
-                                                               .deadband(OperatorConstants.DEADBAND)
-                                                               .scaleTranslation(0.8)
-                                                               .allianceRelativeControl(true);
-
-  AbsoluteDrive closedAbsoluteDrive = new AbsoluteDrive(drivebase,
-                                                    // Applies deadbands and inverts controls because joysticks
-                                                    // are back-right positive while robot
-                                                    // controls are front-left positive
-                                                    () -> MathUtil.applyDeadband(driverXbox.getLeftY(),
-                                                                                  Constants.OperatorConstants.DEADBAND),
-                                                    () -> MathUtil.applyDeadband(driverXbox.getLeftX(),
-                                                                                  Constants.OperatorConstants.DEADBAND),
-                                                    () -> -driverXbox.getRightX(),
-                                                    () -> -driverXbox.getRightY());
 
    // Applies deadbands and inverts controls because joysticks
     // are back-right positive while robot
@@ -84,6 +57,36 @@ public class RobotContainer
   {
     // Configure the trigger bindings
     configureBindings();
+
+    SwerveInputStream driveAngularVelocity = SwerveInputStream.of(drivebase.getSwerveDrive(),
+    () -> driverXbox.getLeftY(),
+    () -> driverXbox.getLeftX())
+.withControllerRotationAxis(driverXbox::getRightX)
+.deadband(OperatorConstants.DEADBAND)
+.scaleTranslation(0.5)
+.allianceRelativeControl(true);
+
+
+SwerveInputStream driveAngularVelocitySim = SwerveInputStream.of(drivebase.getSwerveDrive(),
+       () -> -driverXbox.getLeftY(),
+       () -> -driverXbox.getLeftX())
+   .withControllerRotationAxis(() -> driverXbox.getRawAxis(2))
+   .deadband(OperatorConstants.DEADBAND)
+   .scaleTranslation(0.8)
+   .allianceRelativeControl(true);
+
+AbsoluteDrive closedAbsoluteDrive = new AbsoluteDrive(drivebase,
+// Applies deadbands and inverts controls because joysticks
+// are back-right positive while robot
+// controls are front-left positive
+() -> MathUtil.applyDeadband(driverXbox.getLeftY() * -1,
+                      Constants.OperatorConstants.DEADBAND),
+() -> MathUtil.applyDeadband(driverXbox.getLeftX() * -1,
+                      Constants.OperatorConstants.DEADBAND),
+() -> -driverXbox.getRightX(),
+() -> -driverXbox.getRightY());
+    drivebase.setDefaultCommand(closedAbsoluteDrive);
+
     DriverStation.silenceJoystickConnectionWarning(true);
     // NamedCommands.registerCommand("test", Commands.print("I EXIST"));
   }
@@ -99,7 +102,7 @@ public class RobotContainer
   {
 
     // Command driveFieldOrientedAnglularVelocity = drivebase.driveFieldOriented(driveAngularVelocity);
-    Command driveFieldOrientedAnglularVelocitySim = drivebase.driveFieldOriented(driveAngularVelocitySim);
+    // Command driveFieldOrientedAnglularVelocitySim = drivebase.driveFieldOriented(driveAngularVelocitySim);
 
     Command driveFieldOrientedDirectAngle = drivebase.driveCommand(
         () -> MathUtil.applyDeadband(driverXbox.getLeftY() *-1, OperatorConstants.DEADBAND),
@@ -109,11 +112,8 @@ public class RobotContainer
     drivebase.setDefaultCommand(driveFieldOrientedDirectAngle);
 
     // (Condition) ? Return-On-True : Return-on-False
-    drivebase.setDefaultCommand(!RobotBase.isSimulation() ?
-      driveFieldOrientedDirectAngle:driveFieldOrientedAnglularVelocitySim);
-
-    // drivebase.setDefaultCommand(closedAbsoluteDrive);
-
+    // drivebase.setDefaultCommand(!RobotBase.isSimulation() ?
+    //   driveFieldOrientedDirectAngle:driveFieldOrientedAnglularVelocitySim);
     
     driverXbox.a().onTrue((Commands.runOnce(drivebase::zeroGyro)));
     driverXbox.x().onTrue(Commands.runOnce(drivebase::addFakeVisionReading));
