@@ -1,5 +1,3 @@
-// OMMATOPHORE IS THE ELEVATOR
-
 package frc.robot.subsystems;
 
 import com.revrobotics.RelativeEncoder;
@@ -7,60 +5,63 @@ import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
-import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
 
 public class OmmatophoreSubsystem extends SubsystemBase {
     private final SparkMax ommatophoreMotor;
     private final RelativeEncoder ommatophoreEncoder;
     private final SparkClosedLoopController ommatophorePID;
 
-    private static final double UP_SPEED = 0.2;   // Adjust as needed
-    private static final double DOWN_SPEED = -0.2; // Adjust as needed
-    private static final double HOLDING_POWER = 0.01;
-    private static final double STOP_SPEED = 0.0;
+    private static final double HOLDING_POWER = 0.01; // Power needed to prevent elevator from falling naturally, but not enough to move
+    private static final double STOP_SPEED = 0.0; // Stop
+    private static final double POSITION_TOLERANCE = 2.0; // Allowable error in encoder units
+    private static final double MAX_MANUAL_SPEED = 0.9; // Up and down speed
 
-    public static final double[] STAGES = {55.0, 106.0, 215.0}; // Stage positions
-    private int currentStage = 0; // Start at bottom stage
-    private boolean isManualControl = false;
-    private boolean lastControlledManually = false;  // Track last control mode
+    public static final double[] STAGES = {55.0, 106.0, 215.0}; // Encoder positions for each stage
+    private int currentStage = 0; // Track the current stage
+    private boolean isManualControl = false; // Flag for manual control
 
-    
-    
     public OmmatophoreSubsystem(int motorPort) {
-        ommatophoreMotor = new SparkMax(11, MotorType.kBrushless);
+        ommatophoreMotor = new SparkMax(motorPort, MotorType.kBrushless);
         ommatophorePID = ommatophoreMotor.getClosedLoopController();
         ommatophoreEncoder = ommatophoreMotor.getEncoder();
 
-        // ommatophorePID.SetP(0.1);
-        // ommatophorePID.setI(0.0);
-        // ommatophorePID.setD(0.0);
-        // ommatophorePID.setFF(0.0);
-
         SparkFlexConfig config = new SparkFlexConfig();
-
-        // Set PID gains
         config.closedLoop
                 .p(0.1)
-                .i(0.1)
-                .d(0.1)
-                .outputRange(-.2, 1);
-        
+                .i(0.0)
+                .d(0.0)
+                .outputRange(-0.3, 0.3);
+
         ommatophoreEncoder.setPosition(0);
     }
 
-    public void moveUp() {
-        ommatophoreMotor.set(UP_SPEED);
+    public void moveToStage(int stageIndex) {
+        if (stageIndex >= 0 && stageIndex < STAGES.length) {
+            double targetPosition = STAGES[stageIndex];
+            ommatophorePID.setReference(targetPosition, SparkMax.ControlType.kPosition);
+            currentStage = stageIndex;
+            System.out.println("Moving to stage: " + stageIndex + " at position " + targetPosition);
+        }
     }
 
-    public void moveDown() {
-        ommatophoreMotor.set(DOWN_SPEED);
-    }
+    public void setManualControl(double power) {
+        double currentPosition = ommatophoreEncoder.getPosition();
 
-    public void idle() {
-        ommatophoreMotor.set(HOLDING_POWER);
+        // Enforce soft limits
+        if ((power > 0 && currentPosition >= STAGES[2]) || // Prevent moving above stage 2
+            (power < 0 && currentPosition <= STAGES[0])) { // Prevent moving below stage 0
+            power = 0;
+        }
+
+        if (Math.abs(power) > 0.05) { // Deadband threshold
+            isManualControl = true;
+            ommatophoreMotor.set(Math.copySign(Math.min(Math.abs(power), MAX_MANUAL_SPEED), power));
+        } else if (isManualControl) { // Stop motor when triggers are released
+            isManualControl = false;
+            stopMotor();
+        }
     }
 
     public void stopMotor() {
@@ -68,51 +69,28 @@ public class OmmatophoreSubsystem extends SubsystemBase {
     }
 
     public double getPosition() {
-        return ommatophoreEncoder.getPosition(); // Returns encoder position
+        return ommatophoreEncoder.getPosition();
     }
 
-    public void resetEncoder() {
-        ommatophoreEncoder.setPosition(0);
+    public double[] getStagePositions() {
+        return STAGES;
     }
-
-    public void moveUpOneStage() {
-        if (currentStage < STAGES.length - 1) {
-            moveToStage(currentStage + 1);
-        }
-    }
-
-    public void moveDownOneStage() {
-        if (currentStage > 0) {
-            moveToStage(currentStage - 1);
-        }
-    }
-
-    public void moveToStage(int stage) {
-        if (stage >= 0 && stage < STAGES.length) {
-            currentStage = stage;
-            ommatophorePID.setReference(STAGES[currentStage], SparkMax.ControlType.kPosition);
-            System.out.println("Moving to stage: " + currentStage + " at position " + STAGES[currentStage]);
-        }
-    }
-
-    public void setManualControl(double power) {
-        if (Math.abs(power) > 0.05) {  // If trigger is actively pressed
-            isManualControl = true;
-            ommatophoreMotor.set(power);
-        } else if (isManualControl) {  // If triggers are released, stop motor
-            isManualControl = false;
-            ommatophoreMotor.stopMotor();  
-        }
-
-    }
-
 
     @Override
     public void periodic() {
-        // double currentAmps = ommatophoreMotor.getOutputCurrent(); // Get motor current
-        // SmartDashboard.putNumber("Elevator Motor Current", currentAmps); // Display on dashboard
-        // System.out.println("Elevator Motor Current: " + currentAmps + " A"); // Print to console
-        // You can log encoder values for debugging
-        //System.out.println("Ommatophore Position: " + getPosition());
+        // System.out.println("Ommatophore Position: " + getPosition());
+        // SmartDashboard.putNumber("Ommatophore Position", getPosition());
+    }
+
+    public void moveUp() {
+        ommatophoreMotor.set(MAX_MANUAL_SPEED);
+    }
+
+    public void moveDown() {
+        ommatophoreMotor.set(-MAX_MANUAL_SPEED);
+    }
+
+    public void idle() {
+        ommatophoreMotor.set(HOLDING_POWER);
     }
 }

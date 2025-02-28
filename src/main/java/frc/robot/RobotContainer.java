@@ -4,34 +4,38 @@
 
 package frc.robot;
 
+import org.photonvision.PhotonCamera;
+
+import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
-import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.Filesystem;
+import com.pathplanner.lib.commands.PathPlannerAuto;
+import com.pathplanner.lib.events.EventTrigger;
+
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.GenericHID;
-import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.RunCommand;
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
-import frc.robot.commands.MoveCrusherClawCommand;
+import frc.robot.commands.MaxillipedCommand;
 import frc.robot.commands.MoveMandibleCommand;
+import frc.robot.commands.apriltags.PositionEstimation;
+import frc.robot.commands.apriltags.TurnToTag;
+import frc.robot.commands.autocommands.AutoCoral;
+import frc.robot.commands.crusherclawcommands.MoveCrusherClawCommand;
 import frc.robot.commands.ommatophore.MoveOmmatophoreCommand;
 import frc.robot.commands.ommatophore.MoveOmmatophoreStageCommand;
-import frc.robot.commands.swervedrive.drivebase.AbsoluteDrive;
 import frc.robot.subsystems.CrusherClawSubsystem;
 import frc.robot.subsystems.MandibleSubsystem;
+import frc.robot.subsystems.MaxillipedSubsystem;
 import frc.robot.subsystems.OmmatophoreSubsystem;
+import frc.robot.subsystems.VisionSubsystem;
 import frc.robot.subsystems.swervedrive.SwerveSubsystem;
-import java.io.File;
 import swervelib.SwerveInputStream;
 
 /**
@@ -44,120 +48,122 @@ import swervelib.SwerveInputStream;
  */
 public class RobotContainer {
 
-  // Replace with CommandPS4Controller or CommandJoystick if needed
-  
-  final XboxController driverXbox = new XboxController(0);
-  final GenericHID buttonBoard = new GenericHID(1);
-  
-  // The robot's subsystems and commands are defined here...
-  private final OmmatophoreSubsystem ommatophoreSubsystem = new OmmatophoreSubsystem(11); // CAN ID of elevator motor
-  private final CrusherClawSubsystem crusherClawSubsystem = new CrusherClawSubsystem(12); // CAN ID of elevator motor
-  private final MandibleSubsystem mandibleSubsystem = new MandibleSubsystem(13); // CAN ID of climber motor
-  
+    // Replace with CommandPS4Controller or CommandJoystick if needed
 
-  private final SwerveSubsystem drivebase = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
-      "swerve/neo"));
+    final XboxController driverXbox = new XboxController(0);
+    final GenericHID buttonBoard = new GenericHID(1);
 
-  /**
-   * The container for the robot. Contains subsystems, OI devices, and commands.
-   */
-  public RobotContainer() {
-    // Configure the trigger bindings
-    configureBindings();   
-  }
-  
-  /**
-   * Converts driver input into a field-relative ChassisSpeeds that is controlled by angular velocity.
-   */
-  SwerveInputStream driveAngularVelocity = SwerveInputStream.of(drivebase.getSwerveDrive(),
-                                                                () -> driverXbox.getLeftY() * -1,
-                                                                () -> driverXbox.getLeftX() * -1)
-                                                            .withControllerRotationAxis(driverXbox::getRightX)
-                                                            .deadband(OperatorConstants.DEADBAND)
-                                                            .scaleTranslation(0.4)
-                                                            .allianceRelativeControl(true);
+    private final PhotonCamera camera = new PhotonCamera(Constants.AprilTags.CameraConstants.kCameraName);
 
-  /**
-   * Clone's the angular velocity input stream and converts it to a fieldRelative input stream.
-   */
-  SwerveInputStream driveDirectAngle = driveAngularVelocity.copy().withControllerHeadingAxis(driverXbox::getRightX,
-                                                                                             driverXbox::getRightY)
-                                                           .headingWhile(true);
+    // The robot's subsystems and commands are defined here...
 
-  /**
-   * Clone's the angular velocity input stream and converts it to a robotRelative input stream.
-   */
-  SwerveInputStream driveRobotOriented = driveAngularVelocity.copy().robotRelative(true)
-                                                             .allianceRelativeControl(false);
+    private final OmmatophoreSubsystem ommatophoreSubsystem = new OmmatophoreSubsystem(11); // CAN ID of elevator motor
+    private final CrusherClawSubsystem crusherClawSubsystem = new CrusherClawSubsystem(12); // CAN ID of arm motor
+    private final MandibleSubsystem mandibleSubsystem = new MandibleSubsystem(13); // CAN ID of climber motor
+    private final MaxillipedSubsystem maxillipedSubsystem = new MaxillipedSubsystem(14); // CAN ID of pin motor
 
+    private final SwerveSubsystem drivebase = new SwerveSubsystem();
+    private final VisionSubsystem vision = new VisionSubsystem(camera, drivebase);
 
-  /**
-   * Use this method to define your trigger->command mappings. Triggers can be
-   * created via the
-   * {@link Trigger#Trigger(java.util.function.BooleanSupplier)} constructor with
-   * an arbitrary predicate, or via the
-   * named factories in
-   * {@link edu.wpi.first.wpilibj2.command.button.CommandGenericHID}'s subclasses
-   * for
-   * {@link CommandXboxController
-   * Xbox}/{@link edu.wpi.first.wpilibj2.command.button.CommandPS4Controller PS4}
-   * controllers or {@link edu.wpi.first.wpilibj2.command.button.CommandJoystick
-   * Flight joysticks}.
-   */
-  private void configureBindings() {
+    private final PositionEstimation aprilPositionEstimation = new PositionEstimation(vision);
 
-    Command driveRobotOrientedAngularVelocity  = drivebase.driveFieldOriented(driveRobotOriented);
-    drivebase.setDefaultCommand(driveRobotOrientedAngularVelocity);
+    private PIDController turnController = new PIDController(.1, 0, 0);
+    private PIDController forwardController = new PIDController(1, 0, 1);
 
-    Command moveCrusherClawCommand = new MoveCrusherClawCommand(crusherClawSubsystem, driverXbox);
+    private TurnToTag pointToTag = new TurnToTag(camera, drivebase, turnController, forwardController);
+    private AutoCoral autoCoral = new AutoCoral(crusherClawSubsystem, ommatophoreSubsystem);
+    private SendableChooser<Command> autoChooser;
+    PathPlannerAuto thisAuto = new PathPlannerAuto("Main - 2 Coral Auto");
 
-    crusherClawSubsystem.setDefaultCommand(moveCrusherClawCommand);
+    /**
+     * The container for the robot. Contains subsystems, OI devices, and commands.
+     */
+    public RobotContainer() {
 
-    
-    Command moveMandibleCommand = new MoveMandibleCommand(mandibleSubsystem, driverXbox);
+    NamedCommands.registerCommand("autoCoral", autoCoral);
+        
 
-    mandibleSubsystem.setDefaultCommand(moveMandibleCommand);
+        new EventTrigger("Score Coral").onTrue(autoCoral);
 
-    // Manual elevator control (Right Trigger = Up, Left Trigger = Down)
+        autoChooser = AutoBuilder.buildAutoChooser();
+        SmartDashboard.putData("Auto Chooser", autoChooser);
+
+        // Configure the trigger bindings
+        configureBindings();
+        drivebase.setDefaultCommand(driveFieldOrientedAngularVelocity);
+    }
+
+    SwerveInputStream driveAngularVelocity = SwerveInputStream.of(drivebase.getSwerveDrive(),
+            () -> driverXbox.getLeftY() * -1,
+            () -> driverXbox.getLeftX() * -1)
+            .withControllerRotationAxis(() -> driverXbox.getRightX() * 1)
+            .deadband(OperatorConstants.DEADBAND)
+            .scaleTranslation(0.8)
+            .allianceRelativeControl(true);
+
+    /**
+     * Clone's the angular velocity input stream and converts it to a robotRelative
+     * input stream.
+     */
+    SwerveInputStream driveRobotOriented = driveAngularVelocity.copy().robotRelative(true)
+            .allianceRelativeControl(false);
+
+    SwerveInputStream driveDirectAngle = driveAngularVelocity.copy()
+            .withControllerHeadingAxis(driverXbox::getRightX,
+                    driverXbox::getRightY)
+            .headingWhile(true);
+
+    Command driveRobotOrientedAngularVelocity = drivebase.driveFieldOriented(driveRobotOriented);
+    Command driveFieldOrientedDirectAngle = drivebase.driveFieldOriented(driveDirectAngle);
+
+    Command driveFieldOrientedAngularVelocity = drivebase.driveFieldOriented(driveAngularVelocity);
+
+    private void configureBindings() {
+
+        Command driveRobotOrientedAngularVelocity = drivebase.driveFieldOriented(driveRobotOriented);
+        drivebase.setDefaultCommand(driveRobotOrientedAngularVelocity);
+
+        new JoystickButton(driverXbox, XboxController.Button.kBack.value)              // Button to reorient the current direction as "0"
+                      .onTrue((new InstantCommand(drivebase::zeroGyro)));
+
+        Command moveCrusherClawCommand = new MoveCrusherClawCommand(crusherClawSubsystem, driverXbox);
+        crusherClawSubsystem.setDefaultCommand(moveCrusherClawCommand);
+
+        Command moveMandibleCommand = new MoveMandibleCommand(mandibleSubsystem, driverXbox);
+        mandibleSubsystem.setDefaultCommand(moveMandibleCommand);
+
+        // Manual elevator control (Right Trigger = Up, Left Trigger = Down)
         new Trigger(() -> driverXbox.getRightTriggerAxis() > 0.05)
-        .whileTrue(new MoveOmmatophoreCommand(ommatophoreSubsystem,driverXbox));
+                .whileTrue(new MoveOmmatophoreCommand(ommatophoreSubsystem, driverXbox));
 
         new Trigger(() -> driverXbox.getLeftTriggerAxis() > 0.05)
-        .whileTrue(new MoveOmmatophoreCommand(ommatophoreSubsystem, driverXbox));
+                .whileTrue(new MoveOmmatophoreCommand(ommatophoreSubsystem, driverXbox));
 
-    // // Stage-based elevator control (B = Up one stage, X = Down one stage)
-    //     new JoystickButton(driverXbox, XboxController.Button.kB.value)
-    //         .onTrue(new MoveOmmatophoreStageCommand(ommatophoreSubsystem, driverXbox));
+        // // Stage-based elevator control
+        // new JoystickButton(buttonBoard, 5)
+        //         .onTrue(new MoveOmmatophoreStageCommand(ommatophoreSubsystem, 0)); // Bottom stage
 
-    //     new JoystickButton(driverXbox, XboxController.Button.kX.value)
-    //         .onTrue(new MoveOmmatophoreStageCommand(ommatophoreSubsystem, driverXbox));
+        // new JoystickButton(buttonBoard, 3)
+        //         .onTrue(new MoveOmmatophoreStageCommand(ommatophoreSubsystem, 1)); // Middle stage
 
-    
+        // new JoystickButton(buttonBoard, 4)
+        //         .onTrue(new MoveOmmatophoreStageCommand(ommatophoreSubsystem, 2)); // Top stage
 
-    
+        // Maxilliped Control
+        new JoystickButton(driverXbox, XboxController.Button.kStart.value)
+                .onTrue(new MaxillipedCommand(maxillipedSubsystem));
 
-    // driverXbox.a().onTrue((Commands.runOnce(drivebase::zeroGyro)));
-    // driverXbox.x().onTrue(Commands.runOnce(drivebase::addFakeVisionReading));
-    // driverXbox.b().whileTrue(
-    //     drivebase.driveToPose(
-    //         new Pose2d(new Translation2d(4, 4), Rotation2d.fromDegrees(0))));
-    // driverXbox.start().whileTrue(Commands.none());
-    // driverXbox.back().whileTrue(Commands.none());
-    // driverXbox.leftBumper().whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
-    // driverXbox.rightBumper().onTrue(Commands.none());
-  }
+        // Camera Control
+        new JoystickButton(buttonBoard, 6)
+                .onTrue(pointToTag);
+    }
 
-  /**
-   * Use this to pass the autonomous command to the main {@link Robot} class.
-   *
-   * @return the command to run in autonomous
-   */
-  // public Command getAutonomousCommand() {
-    // // An example command will be run in autonomous
-    // return drivebase.getAutonomousCommand("New Auto");
-  // }
-
-  public void setMotorBrake(boolean brake) {
-    drivebase.setMotorBrake(brake);
-  }
+    /**
+     * Use this to pass the autonomous command to the main {@link Robot} class.
+     *
+     * @return the command to run in autonomous
+     */
+    public Command getAutonomousCommand() {
+        return autoChooser.getSelected();
+    }
 }

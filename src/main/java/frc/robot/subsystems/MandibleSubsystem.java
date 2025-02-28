@@ -14,9 +14,9 @@ public class MandibleSubsystem extends SubsystemBase {
     private final SparkMax mandibleMotor;
     private final RelativeEncoder mandibleEncoder;
 
-    private static final double CW_SPEED = -1;   // Adjust as needed
-    private static final double CCW_SPEED = 1; // Adjust as needed
-    private static final double STOP_SPEED = 0.0;
+    private static final double CW_SPEED = -1;   // Clockwise speed
+    private static final double CCW_SPEED = 1; // Counterclockwise speed
+    private static final double STOP_SPEED = 0.0; // Stop
 
     
 

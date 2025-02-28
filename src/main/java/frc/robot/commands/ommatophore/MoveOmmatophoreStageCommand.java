@@ -1,35 +1,41 @@
 package frc.robot.commands.ommatophore;
 
-import edu.wpi.first.wpilibj.XboxController;
-import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.OmmatophoreSubsystem;
+import edu.wpi.first.wpilibj2.command.Command;
 
 public class MoveOmmatophoreStageCommand extends Command {
-    private final OmmatophoreSubsystem ommatophoreSubsystem;
-    private final XboxController controller;
+    private final OmmatophoreSubsystem ommatophore;
+    private final int targetStage;
 
-    public MoveOmmatophoreStageCommand(OmmatophoreSubsystem ommatophoreSubsystem, XboxController driverXbox) {
-        this.ommatophoreSubsystem = ommatophoreSubsystem;
-        this.controller = driverXbox;
-        addRequirements(ommatophoreSubsystem);
+    public MoveOmmatophoreStageCommand(OmmatophoreSubsystem ommatophore, int targetStage) {
+        this.ommatophore = ommatophore;
+        this.targetStage = targetStage;
+        addRequirements(ommatophore);
     }
 
     @Override
-    public void execute() {
-        if (controller.getBButton()) {  // Move elevator up one stage
-            ommatophoreSubsystem.moveUpOneStage();
-        } else if (controller.getXButton()) {  // Move elevator down one stage
-            ommatophoreSubsystem.moveDownOneStage();
-        }
-    }
-
-    @Override
-    public void end(boolean interrupted) {
-        // No need to stop motor here, since manual control is handled separately
+    public void initialize() {
+        System.out.println("Moving Ommatophore to Stage: " + targetStage);
+        ommatophore.moveToStage(targetStage);
     }
 
     @Override
     public boolean isFinished() {
-        return false;  // This command runs indefinitely while the buttons are being pressed
+        // Check if the elevator is close enough to the target position
+        double currentPos = ommatophore.getPosition();
+        double targetPos = OmmatophoreSubsystem.STAGES[targetStage];
+        double tolerance = 2.0; // Allowable error range
+
+        return Math.abs(currentPos - targetPos) < tolerance;
+    }
+
+    @Override
+    public void end(boolean interrupted) {
+        if (interrupted) {
+            System.out.println("Ommatophore Stage Movement Interrupted!");
+        } else {
+            System.out.println("Ommatophore Reached Stage: " + targetStage);
+        }
+        ommatophore.stopMotor();
     }
 }
