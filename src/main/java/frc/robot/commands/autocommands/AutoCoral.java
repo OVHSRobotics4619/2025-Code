@@ -11,7 +11,7 @@ public class AutoCoral extends SequentialCommandGroup {
     public AutoCoral(CrusherClawSubsystem crusherClaw, OmmatophoreSubsystem ommatophore) {
         addCommands(
             // Step 1: Raise the Crusher Claw
-            new RaiseCrusherClawCommand(crusherClaw), 
+            new RaiseCrusherClawCommand(crusherClaw),
 
             // Step 2: Move Ommatophore to top stage
             new MoveOmmatophoreStageCommand(ommatophore, 2), // Assuming stage 2 is the top stage

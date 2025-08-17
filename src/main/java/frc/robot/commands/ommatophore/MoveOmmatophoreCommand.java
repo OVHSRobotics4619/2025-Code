@@ -6,6 +6,11 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.OmmatophoreSubsystem;
 import edu.wpi.first.wpilibj.XboxController;
 
+import org.opencv.objdetect.Board;
+
+import edu.wpi.first.wpilibj.GenericHID;
+
+
 public class MoveOmmatophoreCommand extends Command {
     private final OmmatophoreSubsystem ommatophoreSubsystem;
     private final XboxController controller;
@@ -18,7 +23,7 @@ public class MoveOmmatophoreCommand extends Command {
 
     @Override
     public void execute() {
-        if (controller.getRawAxis(3)>0) {
+        if (controller.getRawAxis(3)>0){
             ommatophoreSubsystem.moveUp();  // Right trigger moves up
         } else if (controller.getRawAxis(2)>0) {
             ommatophoreSubsystem.moveDown(); // Left trigger moves down

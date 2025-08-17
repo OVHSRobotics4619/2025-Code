@@ -4,12 +4,15 @@
 
 package frc.robot;
 
+import com.pathplanner.lib.config.PIDConstants;
+
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -35,13 +38,12 @@ public final class Constants {
   public static final double LOOP_TIME = 0.13; // s, 20ms + 110ms sprk max velocity lag
   // Maximum speed of the robot in meters per second, used to limit acceleration.
 
-  // public static final class AutonConstants
-  // {
-  //
-  // public static final PIDConstants TRANSLATION_PID = new PIDConstants(0.7, 0,
-  // 0);
-  // public static final PIDConstants ANGLE_PID = new PIDConstants(0.4, 0, 0.01);
-  // }
+  public static final class AutonConstants {
+
+    public static final PIDConstants TRANSLATION_PID = new PIDConstants(0.7, 0,
+        0);
+    public static final PIDConstants ANGLE_PID = new PIDConstants(0.4, 0, 0.01);
+  }
 
   public static final class DrivebaseConstants {
 
@@ -79,8 +81,6 @@ public final class Constants {
 
       public static final String kCameraName = "Good Camera";
 
-      // Cam mounted facing forward, half a meter forward of center, half a meter up
-      // from center.
       public static final Transform3d kRobotToCam = new Transform3d(
           new Translation3d(Units.inchesToMeters(5.75), Units.inchesToMeters(-7.5), Units.inchesToMeters(15.25)),
           new Rotation3d(0, Math.toRadians(-0), Math.toRadians(55)));
@@ -90,5 +90,7 @@ public final class Constants {
   // Distance away from apriltag robot tries to align with
   public static final double GOAL_RANGE_METERS = 0.5;
 
-  public static final double maxSpeed = Units.feetToMeters(13.0);
+  public static final double maxSpeed = Units.feetToMeters(3.0);
+  public static final double maxRotationSpeed = Units.rotationsToRadians(2);
+
 }

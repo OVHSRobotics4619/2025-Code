@@ -47,28 +47,19 @@ public class SwerveSubsystem extends SubsystemBase {
               Rotation2d.fromDegrees(0)));
 
       SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
-
-      // swerveDrive = new
-      // SwerveParser(directory).createSwerveDrive(Constants.maxSpeed);
-      // Alternative method if you don't want to supply the conversion factor via JSON
-      // files.
-      // swerveDrive = new SwerveParser(directory).createSwerveDrive(maximumSpeed,
-      // angleConversionFactor, driveConversionFactor);
-
       swerveDrive.restoreInternalOffset();
     } catch (Exception e) {
+
       throw new RuntimeException(e);
     }
   }
 
   @Override
   public void periodic() {
-    // This method will be called once per scheduler run
   }
 
   @Override
   public void simulationPeriodic() {
-    // This method will be called once per scheduler run during simulation
   }
 
   public SwerveDrive getSwerveDrive() {
@@ -100,7 +91,6 @@ public class SwerveSubsystem extends SubsystemBase {
     swerveDrive.zeroGyro();
   }
 
-
   public void resetOdometry(Pose2d initialHolonomicPose)
   {
     swerveDrive.resetOdometry(initialHolonomicPose);
@@ -116,21 +106,18 @@ public class SwerveSubsystem extends SubsystemBase {
     swerveDrive.drive(velocity);
   }
 
-    public void addVisionReading(Pose2d position, double timestampSeconds)
-  {
-    swerveDrive.addVisionMeasurement(position, timestampSeconds);
-  }
-
   public void addVisionReading(Pose2d visionMeasurement, double timestampSeconds, Matrix<N3, N1> stdDevs) 
   {
     swerveDrive.addVisionMeasurement(visionMeasurement, timestampSeconds, stdDevs);
   }
 
-  public void driveWithVision(double rotation, double forward) {
-    // Your YAGSL Swerve drive control logic based on vision targets
-    // Adjust the swerve drive motors accordingly
+  public void drive(double forward, double strafe, double turn) {
+    Translation2d translation = new Translation2d(forward, strafe);
+    swerveDrive.drive(translation,  turn, true, false);
+  }
 
-    swerveDrive.drive(new Translation2d(forward, 0), rotation, false, false);
+  public void driveWithVision(double angle, double distance) {
+    swerveDrive.drive(new Translation2d(distance, new Rotation2d(angle)), 0, true, false);
   }
 
   // Load the RobotConfig from the GUI settings. You should probably
@@ -138,7 +125,6 @@ public class SwerveSubsystem extends SubsystemBase {
     RobotConfig config;{    try{
       config = RobotConfig.fromGUISettings();
     } catch (Exception e) {
-      // Handle exception as needed
       e.printStackTrace();
     }
 
@@ -157,11 +143,7 @@ public class SwerveSubsystem extends SubsystemBase {
               // Boolean supplier that controls when the path will be mirrored for the red alliance
               // This will flip the path being followed to the red side of the field.
               // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
-
-              var alliance = DriverStation.getAlliance();
-              if (alliance.isPresent()) {
-                return alliance.get() == DriverStation.Alliance.Red;
-              }
+          
               return false;
             },
             this // Reference to this subsystem to set requirements

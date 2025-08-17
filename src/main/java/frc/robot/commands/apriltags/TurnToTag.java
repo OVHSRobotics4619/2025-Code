@@ -1,11 +1,13 @@
 package frc.robot.commands.apriltags;
 
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.wpilibj2.command.Command;
 
 import java.util.List;
 
 import org.photonvision.PhotonCamera;
+import org.photonvision.PhotonUtils;
 import org.photonvision.targeting.PhotonPipelineResult;
 import org.photonvision.targeting.PhotonTrackedTarget;
 
@@ -19,6 +21,8 @@ public class TurnToTag extends Command {
     private final PIDController angleCalculator;
     private final PIDController distanceCalculator;
 
+    private boolean ended = false;
+
     public TurnToTag(PhotonCamera camera, SwerveSubsystem swerveSubsystem, PIDController angle, PIDController forward) {
         this.camera = camera;
         this.angleCalculator = angle;
@@ -29,14 +33,16 @@ public class TurnToTag extends Command {
 
     @Override
     public void initialize() {
-        // Initialization logic (if needed)
     }
 
     @Override
     public void execute() {
         PhotonPipelineResult result = camera.getLatestResult();
-        double angle = 0.0;
-        double distance = 0.0;
+        double angle = -1;
+        double distance = -1;
+
+        System.out.println("Looking for april tags");
+
         if (result.hasTargets()) {
 
             List<PhotonTrackedTarget>targets = result.getTargets();
@@ -45,27 +51,39 @@ public class TurnToTag extends Command {
                 int targetId = target.getFiducialId();
                 if (targetId == 18)
                 {
-                    angle = angleCalculator.calculate(target.getYaw(), 0);
-                    double range = target.getBestCameraToTarget().getX();
+                    System.out.println("Found april tag 18");
+
+                    double yaw = target.getYaw();
+
+                    angle = angleCalculator.calculate(yaw, 0);
+
+                    Transform3d cameraTarget = target.getBestCameraToTarget();
+
+                    PhotonUtils.estimateCameraToTarget(null, null, null);
+
+                    double range = cameraTarget.getX();
+                    double yValue = cameraTarget.getY();
                     distance = distanceCalculator.calculate(range, Constants.GOAL_RANGE_METERS);
-                    // System.out.println("Forward speed: " + forwardSpeed);
-                    // System.out.println("Forward distance: " + range);
+                    System.out.println("Yaw: " + yaw);
+                    System.out.println("Angle: " + angle);
+                    System.out.println("Range: " + range);
+                    System.out.println("Y Value: " + yValue);
+                    System.out.println("Distance: " + distance);
+
                     swerveSubsystem.driveWithVision(angle, distance);
                     break;
                 }
             }
         }
-        
     }
 
     @Override
     public void end(boolean interrupted) {
-        // Cleanup logic (if needed)
+        // ended = true;
     }
 
     @Override
     public boolean isFinished() {
-        // Determine when the command should end (e.g., after a certain duration)
-        return false;
+        return ended;
     }
 }

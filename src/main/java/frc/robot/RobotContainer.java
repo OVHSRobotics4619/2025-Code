@@ -17,6 +17,7 @@ import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
@@ -24,6 +25,7 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.commands.MaxillipedCommand;
 import frc.robot.commands.MoveMandibleCommand;
+import frc.robot.commands.apriltags.DriveToTag;
 import frc.robot.commands.apriltags.PositionEstimation;
 import frc.robot.commands.apriltags.TurnToTag;
 import frc.robot.commands.autocommands.AutoCoral;
@@ -38,24 +40,15 @@ import frc.robot.subsystems.VisionSubsystem;
 import frc.robot.subsystems.swervedrive.SwerveSubsystem;
 import swervelib.SwerveInputStream;
 
-/**
- * This class is where the bulk of the robot should be declared. Since
- * Command-based is a "declarative" paradigm, very
- * little robot logic should actually be handled in the {@link Robot} periodic
- * methods (other than the scheduler calls).
- * Instead, the structure of the robot (including subsystems, commands, and
- * trigger mappings) should be declared here.
- */
-public class RobotContainer {
 
-    // Replace with CommandPS4Controller or CommandJoystick if needed
+public class RobotContainer {
 
     final XboxController driverXbox = new XboxController(0);
     final GenericHID buttonBoard = new GenericHID(1);
 
     private final PhotonCamera camera = new PhotonCamera(Constants.AprilTags.CameraConstants.kCameraName);
 
-    // The robot's subsystems and commands are defined here...
+    // Subsystems & Commands
 
     private final OmmatophoreSubsystem ommatophoreSubsystem = new OmmatophoreSubsystem(11); // CAN ID of elevator motor
     private final CrusherClawSubsystem crusherClawSubsystem = new CrusherClawSubsystem(12); // CAN ID of arm motor
@@ -71,13 +64,12 @@ public class RobotContainer {
     private PIDController forwardController = new PIDController(1, 0, 1);
 
     private TurnToTag pointToTag = new TurnToTag(camera, drivebase, turnController, forwardController);
+    private DriveToTag driveToTag = new DriveToTag(driverXbox, camera, drivebase);
+
     private AutoCoral autoCoral = new AutoCoral(crusherClawSubsystem, ommatophoreSubsystem);
     private SendableChooser<Command> autoChooser;
     PathPlannerAuto thisAuto = new PathPlannerAuto("Main - 2 Coral Auto");
 
-    /**
-     * The container for the robot. Contains subsystems, OI devices, and commands.
-     */
     public RobotContainer() {
 
     NamedCommands.registerCommand("autoCoral", autoCoral);
@@ -132,6 +124,9 @@ public class RobotContainer {
         Command moveMandibleCommand = new MoveMandibleCommand(mandibleSubsystem, driverXbox);
         mandibleSubsystem.setDefaultCommand(moveMandibleCommand);
 
+        new Trigger(() -> driverXbox.getStartButtonPressed())
+        .whileTrue(new DriveToTag(driverXbox, camera, drivebase));
+
         // Manual elevator control (Right Trigger = Up, Left Trigger = Down)
         new Trigger(() -> driverXbox.getRightTriggerAxis() > 0.05)
                 .whileTrue(new MoveOmmatophoreCommand(ommatophoreSubsystem, driverXbox));
@@ -150,19 +145,12 @@ public class RobotContainer {
         //         .onTrue(new MoveOmmatophoreStageCommand(ommatophoreSubsystem, 2)); // Top stage
 
         // Maxilliped Control
-        new JoystickButton(driverXbox, XboxController.Button.kStart.value)
-                .onTrue(new MaxillipedCommand(maxillipedSubsystem));
+        // new JoystickButton(driverXbox, XboxController.Button.kStart.value)
+        //         .onTrue(new MaxillipedCommand(maxillipedSubsystem));
 
         // Camera Control
-        new JoystickButton(buttonBoard, 6)
-                .onTrue(pointToTag);
     }
 
-    /**
-     * Use this to pass the autonomous command to the main {@link Robot} class.
-     *
-     * @return the command to run in autonomous
-     */
     public Command getAutonomousCommand() {
         return autoChooser.getSelected();
     }

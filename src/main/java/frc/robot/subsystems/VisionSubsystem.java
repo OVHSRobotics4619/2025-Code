@@ -20,7 +20,7 @@ import frc.robot.subsystems.swervedrive.SwerveSubsystem;
 
 public class VisionSubsystem extends SubsystemBase {
 
-  PhotonCamera cam = null;
+  PhotonCamera cam = new PhotonCamera("Good Camera");
   SwerveSubsystem swerve;
   PhotonPoseEstimator photonPoseEstimator;
 
@@ -30,6 +30,8 @@ public class VisionSubsystem extends SubsystemBase {
     this.cam = camera;
 
     this.swerve = swerve;
+
+
 
     // Construct PhotonPoseEstimator
     this.photonPoseEstimator = new PhotonPoseEstimator(Constants.AprilTags.kTagLayout, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, Constants.AprilTags.CameraConstants.kRobotToCam);
@@ -64,6 +66,7 @@ public class VisionSubsystem extends SubsystemBase {
     photonPoseEstimator.setReferencePose(prevEstimatedRobotPose);
 
     PhotonPipelineResult pipelineResult = this.cam.getLatestResult();
+    boolean hasTargets = pipelineResult.hasTargets();
 
     return photonPoseEstimator.update(pipelineResult);
   }
@@ -86,8 +89,8 @@ public class VisionSubsystem extends SubsystemBase {
       // Change our trust in the measurement based on the tags we can see
       Matrix<N3, N1> estStdDevs = getEstimationStdDevs(estPose);
 
-      //final double distance = 2;  //get this from the apriltag somehow
-      //estStdDevs = VecBuilder.fill(distance / 2, distance / 2, 100);
+      final double distance = 2;  //get this from the apriltag somehow
+      estStdDevs = VecBuilder.fill(distance / 2, distance / 2, 100);
 
       swerve.addVisionReading(estPose, estTime, estStdDevs);
       

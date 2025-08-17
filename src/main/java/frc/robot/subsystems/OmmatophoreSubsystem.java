@@ -7,7 +7,6 @@ import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
 public class OmmatophoreSubsystem extends SubsystemBase {
     private final SparkMax ommatophoreMotor;
     private final RelativeEncoder ommatophoreEncoder;
@@ -16,7 +15,7 @@ public class OmmatophoreSubsystem extends SubsystemBase {
     private static final double HOLDING_POWER = 0.01; // Power needed to prevent elevator from falling naturally, but not enough to move
     private static final double STOP_SPEED = 0.0; // Stop
     private static final double POSITION_TOLERANCE = 2.0; // Allowable error in encoder units
-    private static final double MAX_MANUAL_SPEED = 0.9; // Up and down speed
+    private static final double MAX_MANUAL_SPEED = 0.2; // Up and down speed
 
     public static final double[] STAGES = {55.0, 106.0, 215.0}; // Encoder positions for each stage
     private int currentStage = 0; // Track the current stage
